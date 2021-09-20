@@ -1,0 +1,173 @@
+-- DQL is made up of different SELECT statements
+-- when we write SQL, queries are separated by semicolons ;
+-- clauses aka sections of a query are separated on different lines
+-- and keywords are written in ALL CAPS aka you can write select however it is standard practice to write SELECT
+
+-- SELECT <column names or * for all>
+-- FROM <table>
+
+SELECT *
+FROM actor;
+
+
+-- Select specific columns - movie title and description
+SELECT title, description
+FROM film;
+
+-- WHERE clause
+-- Lets us modify our select statement/query to only include data matching our specifications
+SELECT title, description
+FROM film
+WHERE title LIKE 'Airport Pollock';
+
+-- with a WHERE clause LIKE is not dissimilar to python's ==
+-- WHERE <column name> LIKE <value>;
+-- also we have the _ and % operators which are wildcards
+-- _ can be any single character
+-- % can be any number of characters
+SELECT title, description, release_year
+FROM film
+WHERE title LIKE '%Airport%';
+
+SELECT *
+FROM actor
+WHERE first_name LIKE 'N___';
+
+-- Where do I see the entire table?
+-- Just query it
+SELECT *
+FROM payment;
+
+-- Comparison operators 
+-- greater than and less than > <
+-- >= and <=
+-- not equal <> (similar to NOT LIKE but for numbers)
+
+-- Select all columns and rows from actor where the name doesn't have a lowercase n
+SELECT *
+FROM actor
+WHERE first_name NOT LIKE '%n%'; -- note that this is case sensitive, you do still get 'Nick' 'Natalie', 'Nate'
+
+-- the customer_ids of people who payed more than $2
+-- you do not have to select the column that you are querying by (aka below when we select rows based on the amount being greater than 2 we actually aren't choosing to show that amount (not selecting it))
+SELECT customer_id
+FROM payment
+WHERE amount > 2;
+
+-- lets see some more expensive transactions
+SELECT *
+FROM payment
+WHERE amount >= 9.99;
+
+-- maybe I want to sort the transactions by their amount
+-- I can use an ORDER BY clause
+SELECT *
+FROM payment
+WHERE amount >= 9.99
+ORDER BY amount DESC; -- ORDER BY defaults to ascending (ASC) - you can pick by using the ASC or DESC keywords
+
+-- AND OR and BETWEEN keywords
+-- AND/OR let us build larger queries specifiying multiple conditions
+-- BETWEEN lets us specify a value BETWEEN two other values
+SELECT *
+FROM payment
+WHERE amount BETWEEN 2 AND 9.99
+ORDER BY payment_date; -- ordering by a timestamp works just fine, will get earliest dates first by default
+
+-- what if I want the amounts less than 2 and greater than 9.99?
+-- use OR
+SELECT *
+FROM payment
+WHERE amount < 2 OR amount >= 9.99
+ORDER BY payment_date;
+
+-- Select all columns and rows from actor where the name doesn't have a lowercase n or an uppercase N
+SELECT *
+FROM actor
+WHERE first_name NOT LIKE '%n%' AND first_name NOT LIKE '%N%';
+
+-- <> is not equals
+-- <> is the numeric type equivalent to NOT LIKE
+-- query all payments that have amount not equal to 0
+-- LIKE is for strings/varchars, math operators for numerical types
+SELECT *
+FROM payment
+WHERE amount <> 0.00;
+
+-- what if I want to write a query to specifically give me back the number of transactions of a certain amount
+-- welcome to AGGREGATES!
+-- aggregates are functions in SQL that let us group data together from multiple rows into one 'answer' row
+
+-- SQL aggregates -> SUM(), AVG(), COUNT(), MIN(), MAX()
+
+
+-- how many payments are there of amount 0?
+-- COUNT()
+SELECT COUNT(amount)
+FROM payment
+WHERE amount = 0;
+
+-- how many payments are there of amount 7.99
+SELECT COUNT(amount)
+FROM payment
+WHERE amount = 7.99;
+
+-- Did we make more than double the money from payments below our average payment or above our average payment?
+-- What is average payment? (and I can alias the answer column name)
+SELECT AVG(amount) AS average_payment
+FROM payment;
+-- $4.20 is the average payment
+
+-- Sum of expensive payments:
+SELECT SUM(amount) AS expensive_payments
+FROM payment
+WHERE amount > 4.2;
+-- $43,822.43 made from expensive payments
+
+-- Sum of cheap payments:
+SELECT SUM(amount) AS cheap_payments
+FROM payment
+WHERE amount <= 4.2;
+-- $17,489.61
+
+-- We did make more than double the money from payments above our average payment amount.
+
+-- How many prices above average do we offer?
+-- I can use the DISTINCT keyword in or out of an aggregate
+SELECT DISTINCT amount
+FROM payment
+WHERE amount > 4.2;
+
+SELECT COUNT(DISTINCT amount)
+FROM payment
+WHERE amount > 4.2;
+
+-- GROUPBY works with an aggregate to allow us to display other data alongside our aggregate result
+-- show me how many transactions there are for each payment amount
+SELECT amount, COUNT(amount) AS number_of_payments
+FROM payment
+GROUP BY amount
+ORDER BY COUNT(amount) DESC;
+
+-- query to display the customers who spent the most money
+SELECT customer_id, SUM(amount)
+FROM payment
+GROUP BY customer_id
+ORDER BY SUM(amount) DESC;
+
+-- not allowed to use an aggregate in a where clause
+
+-- example of a JOIN - getting data from multiple tables into one query
+SELECT payment.customer_id, first_name, last_name, SUM(amount)
+FROM customer
+JOIN payment ON customer.customer_id = payment.customer_id
+GROUP BY payment.customer_id, first_name, last_name
+ORDER BY SUM(amount) DESC;
+
+
+-- structure for homework:
+
+-- QUESTION X: blah blah blah
+SELECT *
+FROM customer;
+-- Answer: blah blah blah
