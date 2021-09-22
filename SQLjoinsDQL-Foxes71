@@ -1,0 +1,141 @@
+-- Customer Table for Presidents
+CREATE TABLE customer(
+	customer_id SERIAL PRIMARY KEY,
+	first_name VARCHAR(100),
+	last_name VARCHAR(100),
+	email VARCHAR(200),
+	address VARCHAR(150),
+	city VARCHAR(150),
+	customer_state VARCHAR(100),
+	zipcode VARCHAR(50)
+);
+
+-- Orders Table for Presidents
+CREATE TABLE order_(
+	order_id SERIAL PRIMARY KEY,
+	order_date DATE DEFAULT CURRENT_DATE,
+	amount NUMERIC(5,2),
+	customer_id INTEGER,
+	FOREIGN KEY(customer_id) REFERENCES customer(customer_id)
+);
+
+INSERT INTO customer(customer_id,first_name,last_name,email,address,city,customer_state,zipcode)
+VALUES(1,'George','Washington','gwash@usa.gov', '3200 Mt Vernon Hwy', 'Mt Vernon', 'VA', '22121');
+
+INSERT INTO customer(customer_id,first_name,last_name,email,address,city,customer_state,zipcode)
+VALUES(2,'John','Adams','jadams@usa.gov','1200 Hancock', 'Quincy', 'MA','02169');
+
+INSERT INTO customer(customer_id,first_name,last_name,email,address,city,customer_state,zipcode)
+VALUES(3,'Thomas','Jefferson', 'tjeff@usa.gov', '931 Thomas Jefferson Pkway', 'Charlottesville','VA','02169');
+
+INSERT INTO customer(customer_id,first_name,last_name,email,address,city,customer_state,zipcode)
+VALUES(4,'James','Madison', 'jmad@usa.gov', '11350 Conway','Orange','VA','02169');
+
+INSERT INTO customer(customer_id,first_name,last_name,email,address,city,customer_state,zipcode)
+VALUES(5,'James','Monroe','jmonroe@usa.gov','2050 James Monroe Parkway','Charlottesville','VA','02169');
+
+-- INSERT INFO INTO ORDERS TABLE
+
+INSERT INTO order_(order_id,amount,customer_id)
+VALUES(1,234.56,1);
+
+INSERT INTO order_(order_id,amount,customer_id)
+VALUES(2,78.50,3);
+
+INSERT INTO order_(order_id,amount,customer_id)
+VALUES(3,124.00,2);
+
+INSERT INTO order_(order_id,amount,customer_id)
+VALUES(4,65.50,3);
+
+INSERT INTO order_(order_id,amount,customer_id)
+VALUES(5,55.50,NULL);
+
+SELECT *
+FROM customer;
+
+SELECT *
+FROM order_;
+
+-- The first word of these queries is SELECT
+-- Joins are part of DQL (Data Query Language)
+-- Meaning that they have no lasting impact on the data stored in the database
+-- They just give you access/insight to the data
+
+-- When comparing these example to our visual/diagram:
+-- TABLE A == customer
+-- TABLE B == order_
+
+-- Inner Join - all of the matching data from the two tables
+SELECT first_name, last_name, order_date, amount
+FROM customer
+INNER JOIN order_
+ON customer.customer_id = order_.customer_id;
+
+-- just JOIN instead of INNER JOIN is the same thing
+SELECT first_name, last_name, order_date, amount, customer.customer_id, order_id
+FROM customer
+JOIN order_
+ON customer.customer_id = order_.customer_id;
+
+-- for an INNER JOIN/JOIN or a FULL OUTER JOIN, the FROM table and the JOIN table can be either/or -- which is which doesn't matter
+SELECT first_name, last_name, order_date, amount, customer.customer_id, order_id
+FROM order_
+JOIN customer
+ON customer.customer_id = order_.customer_id;
+
+
+-- LEFT JOIN order table onto customer table
+SELECT first_name, last_name, order_date, amount, customer.customer_id, order_id
+FROM customer
+LEFT JOIN order_
+ON customer.customer_id = order_.customer_id;
+
+-- Accomplishing the same thing as an INNER JOIN using a LEFT JOIN
+SELECT first_name, last_name, order_date, amount, customer.customer_id, order_id
+FROM customer
+LEFT JOIN order_
+ON customer.customer_id = order_.customer_id
+WHERE order_id IS NOT NULL;
+
+-- LEFT JOIN of only data unique to TABLE A (customer)
+SELECT first_name, last_name, order_date, amount, customer.customer_id, order_id
+FROM customer
+LEFT JOIN order_
+ON customer.customer_id = order_.customer_id
+WHERE order_id IS NULL;
+
+-- I make the right joins exactly as I make the left joins - I'm just copying the left joins, pasting, and changing LEFT to RIGHT
+
+-- RIGHT JOIN order table onto customer table
+SELECT first_name, last_name, order_date, amount, customer.customer_id, order_id
+FROM customer
+RIGHT JOIN order_
+ON customer.customer_id = order_.customer_id;
+
+-- Accomplishing the same thing as an INNER JOIN using a RIGHT JOIN
+SELECT first_name, last_name, order_date, amount, customer.customer_id, order_id
+FROM customer
+RIGHT JOIN order_
+ON customer.customer_id = order_.customer_id
+WHERE first_name IS NOT NULL;
+
+-- RIGHT JOIN of only data unique to TABLE A (customer)
+SELECT first_name, last_name, order_date, amount, customer.customer_id, order_id
+FROM customer
+RIGHT JOIN order_
+ON customer.customer_id = order_.customer_id
+WHERE first_name IS NULL;
+
+-- FULL JOIN
+SELECT first_name, last_name, order_date, amount, customer.customer_id, order_id
+FROM customer
+FULL JOIN order_
+ON customer.customer_id = order_.customer_id;
+
+-- FULL OUTER JOIN (no shared data)
+SELECT first_name, last_name, order_date, amount, customer.customer_id, order_id
+FROM customer
+FULL JOIN order_
+ON customer.customer_id = order_.customer_id
+WHERE order_id IS NULL OR first_name IS NULL;

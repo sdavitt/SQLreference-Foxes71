@@ -1,0 +1,193 @@
+SELECT *
+FROM film;
+
+SELECT *
+FROM film_actor;
+
+SELECT *
+FROM actor;
+
+-- actor table and film table not directly linked -> link is thru film_actor table
+-- I want a table showing the actor's First and Last names, and the film name and description they acted in
+-- multijoin!
+SELECT first_name, last_name, title, description
+FROM actor
+JOIN film_actor
+ON actor.actor_id = film_actor.actor_id
+JOIN film
+ON film_actor.film_id = film.film_id;
+
+-- Join to determine if there are actors who appear in zero films
+SELECT first_name, last_name, film_id
+FROM film_actor
+LEFT JOIN actor
+ON actor.actor_id = film_actor.actor_id
+WHERE first_name IS NULL;
+
+-- Produce information about a customer who lives in specific country
+-- Joining 4 tables to connect Customer to Country
+SELECT first_name, last_name, country
+FROM customer
+JOIN address
+ON customer.address_id = address.address_id
+JOIN city
+ON address.city_id = city.city_id
+JOIN country
+ON city.country_id = country.country_id
+WHERE country LIKE 'A_________%';
+
+-- You can join two unrelated tables as long as the data type of the joining column matches
+-- Why you would do this, I don't know. There probably isn't a ton of point in joining unrelated data - usually we're doing joins to answer specific questions or access specific useful information
+SELECT actor.first_name, actor.last_name, actor_id, customer_id
+FROM customer
+FULL JOIN actor
+ON customer.first_name = actor.first_name;
+
+-- Subqueries
+-- What is a subquery? A subquery is a way to combine two queries into one to essentially make a more complicated filter on a query
+-- Using a subquery, we can access more specifically restricted subsets of our data
+
+-- Two split queries
+-- Find a customer_id that has a total payment amount greater than $175
+SELECT customer_id, SUM(amount)
+FROM payment
+GROUP BY customer_id
+HAVING SUM(amount) > 175
+ORDER BY SUM(amount) DESC;
+
+-- Find all customer info
+SELECT *
+FROM customer;
+
+-- A subquery to find the information about the 6 customers that have greater than $175 in payments:
+SELECT store_id, first_name, last_name
+FROM customer
+WHERE customer_id IN ( -- our subquery should only have the filter/where clause column in its select clause
+	SELECT customer_id
+	FROM payment
+	GROUP BY customer_id
+	HAVING SUM(amount) > 175
+	ORDER BY SUM(amount) DESC
+);
+
+
+-- Subquery with multijoin to determine those customers' countries (if country starts with 'B')
+SELECT store_id, first_name, last_name, country
+FROM customer
+JOIN address
+ON customer.address_id = address.address_id
+JOIN city
+ON address.city_id = city.city_id
+JOIN country
+ON city.country_id = country.country_id
+WHERE country LIKE 'B%' AND customer_id IN (
+	SELECT customer_id
+	FROM payment
+	GROUP BY customer_id
+	HAVING SUM(amount) > 175
+	ORDER BY SUM(amount) DESC
+);
+
+
+-- much more basic subquery
+-- Find number of films with a language of 'English'
+-- LIMIT and OFFSET keywords used to show only certain rows of our results
+-- LIMIT <number of rows to show> OFFSET <after this row we start display>
+SELECT *
+FROM film
+WHERE language_id IN (
+	SELECT language_id
+	FROM language
+	WHERE name = 'English'
+)
+ORDER BY film_id
+LIMIT 10 OFFSET 200;
+
+-- STORED PROCEDURES AND FUNCTIONS
+-- Just like we can define and repeatedly use our own function in Python, we can define and reuse procedures and functions in SQL
+
+-- What's the difference between a procedure and a function?
+-- Very little. Before Postgres 11, there was no real difference -> only functions existed but functions with NO RETURN VALUE were called procedures
+-- Now there is a formal difference between them after Postgres 11. You can do slightly different things that we won't get into
+-- But the main difference is that a Procedure has no return value and a Function does have a return value (although that return value can be nothing)
+
+-- Let's look at storing a procedure to assign a customer a late fee
+-- First lets take a look at this payment data
+SELECT * FROM payment ORDER BY rental_id DESC;
+
+-- DML - Data manipulation language to UPDATE the data stored in a row
+-- Using the UPDATE and SET keywords
+
+-- below is equivalent to def lateFee(rental, amount):
+CREATE OR REPLACE PROCEDURE latefee (
+	rentalID INTEGER,
+	feeAmount NUMERIC(5,2)
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+	-- here is where we actually write the query/queries that make up our stored procedure
+	-- UPDATE <table>
+	-- SET <column> = <new value>
+	-- WHERE <decide where you want that update to be done>
+	UPDATE payment
+	SET amount = amount + feeAmount
+	WHERE rental_id = rentalID;
+	
+	-- because stored procedures can perform their actions on the database without saving changes, we need to tell our procedure to save the changes it made
+	COMMIT;
+END;
+$$
+
+-- CALL our procedure to actually make it run
+-- this is just like a function call in python
+CALL latefee(9999, 900.32);
+CALL latefee(6381, 900.32);
+CALL latefee(12039, 900.32);
+CALL latefee(10000, 900.32);
+CALL latefee(4939, 900.32);
+CALL latefee(4000, 2);
+
+-- With this query we can verify that 5 latefees of 900.32 were assigned to rental_ids 9999, 6381, 12039, 10000, and 4939
+SELECT *
+FROM payment
+WHERE amount >= 900;
+
+-- if we want to delete a stored procedure
+DROP PROCEDURE latefee;
+
+-- a FUNCTION is just like a PROCEDURE however, it can have a return value
+-- and because it can have a return value, it can be used as a SUBQUERY
+
+-- let's create a function to add a new actor to our actor table
+SELECT * FROM actor;
+
+CREATE OR REPLACE FUNCTION add_actor (actorID INTEGER, firstNAME VARCHAR, lastNAME VARCHAR, lastUPDATE TIMESTAMP WITHOUT TIME ZONE)
+RETURNS void -- specifying return type
+AS $$
+BEGIN
+	-- write our actual process/function here
+	INSERT INTO actor(actor_id, first_name, last_name, last_update)
+	VALUES (actorID, firstNAME, lastNAME, lastUPDATE);
+END;
+$$
+LANGUAGE plpgsql;
+
+-- kind of funny thing - CALL is not how we call our function
+-- CALL is how we call a procedure
+-- and of course it couldn't be as easy as having them both use CALL
+-- instead, when calling a function, we SELECT that function
+-- NOW()::timestamp is utilizing a built-in piece of datetime functionality and specifically typecasting it to the timestamp datatype
+SELECT add_actor(500, 'Benedict', 'Cumberbatch', NOW()::timestamp);
+
+SELECT add_actor(501, 'Benadryl', 'Cucumberenglishman', NOW()::timestamp);
+
+SELECT add_actor(502, 'Dule', 'Hill', NOW()::timestamp);
+
+
+SELECT *
+FROM actor
+WHERE actor_id BETWEEN 499 AND 510;
+
+-- Removing a stored function:
+DROP FUNCTION add_actor;
